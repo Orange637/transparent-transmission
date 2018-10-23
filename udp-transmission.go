@@ -39,24 +39,27 @@ func main() {
 			log.Printf("Failed to read data:%v\n", err)
 			continue
 		}
+		go handle(readAddr, data[:num])
+	}
+}
 
-		sourceAddress := readAddr.String()
-		if _, exist := clients[sourceAddress]; !exist {
-			clients[sourceAddress] = readAddr
-			log.Printf("Added new client %s\n", sourceAddress)
-		}
+func handle(sourceAddr *net.UDPAddr, data []byte) {
+	sourceAddress := sourceAddr.String()
+	if _, exist := clients[sourceAddress]; !exist {
+		clients[sourceAddress] = sourceAddr
+		log.Printf("Added new client %s\n", sourceAddress)
+	}
 
-		for key, value := range clients {
-			if key != sourceAddress {
-				go transport(server, data[:num], sourceAddress, value)
-			}
+	for key, value := range clients {
+		if key != sourceAddress {
+			go transport(value, data, sourceAddress)
 		}
 	}
 }
 
-func transport(server *net.UDPConn, data []byte, sourceAddress string, target *net.UDPAddr) {
-	targetAddress := target.String()
-	num, err := server.WriteToUDP(data, target)
+func transport(targetAddr *net.UDPAddr, data []byte, sourceAddress string) {
+	targetAddress := targetAddr.String()
+	num, err := server.WriteToUDP(data, targetAddr)
 	if nil != err {
 		log.Printf("Failed to send data to %s:%v", targetAddress, err)
 		delete(clients, targetAddress)
