@@ -64,7 +64,7 @@ func main() {
 		num, err = inConn.WriteToUDP(data[:num], client)
 		if nil != err {
 			log.Printf("Failed to send data to %s:%v", client.String(), err)
-		} else if false {
+		} else if true {
 			log.Printf("Transport %d bytes from %s to %s\n", num, readAddr.String(), client.String())
 		}
 	}
