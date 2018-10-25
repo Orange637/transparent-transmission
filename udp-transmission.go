@@ -77,7 +77,7 @@ func connectClient() {
 		if nil != err {
 			log.Printf("Failed to connect client:%v\n", err)
 		} else {
-			fmt.Printf("new client:%v\n", readAddr)
+			fmt.Printf("New client connected:%v\n", readAddr)
 			client = readAddr
 		}
 	}
