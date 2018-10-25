@@ -2,68 +2,83 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 )
 
-var clients map[string]*net.UDPAddr
-var server *net.UDPConn
+var inConn *net.UDPConn
+var outConn *net.UDPConn
+var device *net.UDPAddr
+var client *net.UDPAddr
 
 func main() {
-	address := flag.String("a", ":5555", "usage:「-a=:5555」to specify ip and port")
+	inAddress := *flag.String("i", ":5555", "usage:「-i=:5555」to specify in ip and port")
+	outAddress := *flag.String("o", ":5556", "usage:「-o=:5556」to specify out ip and port")
 	flag.Parse()
 
 	// parse server address
-	serverAddr, err := net.ResolveUDPAddr("udp4", *address)
+	inAddr, err := net.ResolveUDPAddr("udp4", inAddress)
+	// client, err = net.ResolveUDPAddr("udp4", inAddress)
 	if nil != err {
-		log.Printf("Failed to parse address:%v\n", err)
+		log.Printf("Failed to parse in address:%v \n", err)
+		return
+	}
+	outAddr, err := net.ResolveUDPAddr("udp4", outAddress)
+	if nil != err {
+		log.Printf("Failed to parse out address:%v \n", err)
 		return
 	}
 
 	// listen on udp
-	server, err = net.ListenUDP("udp4", serverAddr)
+	inConn, err = net.ListenUDP("udp4", inAddr)
 	if nil != err {
-		log.Printf("Failed to listen on %s:%v\n", serverAddr, err)
+		log.Printf("Failed to listen on %s:%v\n", inAddr, err)
 		return
 	} else {
-		log.Printf("Listen on %s\n", server.LocalAddr().String())
+		log.Printf("Listen on %s\n", inConn.LocalAddr().String())
 	}
-	defer server.Close()
+	outConn, err = net.ListenUDP("udp4", outAddr)
+	if nil != err {
+		log.Printf("Failed to listen on %s:%v\n", outAddr, err)
+		return
+	} else {
+		log.Printf("Listen on %s\n", outConn.LocalAddr().String())
+	}
+	defer inConn.Close()
+	defer outConn.Close()
 
-	clients = make(map[string]*net.UDPAddr)
+	go connectClient()
+
 	// udp transparent transmission
 	for {
 		data := make([]byte, 65535)
-		num, readAddr, err := server.ReadFromUDP(data)
+		num, readAddr, err := inConn.ReadFromUDP(data)
 		if nil != err {
 			log.Printf("Failed to read data:%v\n", err)
 			continue
 		}
-		handle(readAddr, data[:num])
-	}
-}
-
-func handle(sourceAddr *net.UDPAddr, data []byte) {
-	sourceAddress := sourceAddr.String()
-	if _, exist := clients[sourceAddress]; !exist {
-		clients[sourceAddress] = sourceAddr
-		log.Printf("Added new client %s\n", sourceAddress)
-	}
-
-	for key, value := range clients {
-		if key != sourceAddress {
-			go transport(value, data, sourceAddress)
+		if nil == client {
+			continue
+		}
+		num, err = inConn.WriteToUDP(data[:num], client)
+		if nil != err {
+			log.Printf("Failed to send data to %s:%v", client.String(), err)
+		} else if false {
+			log.Printf("Transport %d bytes from %s to %s\n", num, readAddr.String(), client.String())
 		}
 	}
 }
 
-func transport(targetAddr *net.UDPAddr, data []byte, sourceAddress string) {
-	targetAddress := targetAddr.String()
-	_, err := server.WriteToUDP(data, targetAddr)
-	if nil != err {
-		log.Printf("Failed to send data to %s:%v", targetAddress, err)
-		delete(clients, targetAddress)
-	} else {
-		// log.Printf("Transport %d bytes from %s to %s\n", num, sourceAddress, targetAddress)
+func connectClient() {
+	for {
+		data := make([]byte, 65535)
+		_, readAddr, err := outConn.ReadFromUDP(data)
+		if nil != err {
+			log.Printf("Failed to connect client:%v\n", err)
+		} else {
+			fmt.Printf("new client:%v\n", readAddr)
+			client = readAddr
+		}
 	}
 }
