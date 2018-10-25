@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 )
@@ -10,7 +9,7 @@ import (
 var inConn *net.UDPConn
 var outConn *net.UDPConn
 var device *net.UDPAddr
-var client *net.UDPAddr
+var clients map[string]*net.UDPAddr
 
 func main() {
 	inAddress := *flag.String("i", ":5555", "usage:「-i=:5555」to specify in ip and port")
@@ -48,6 +47,7 @@ func main() {
 	defer inConn.Close()
 	defer outConn.Close()
 
+	clients = make(map[string]*net.UDPAddr)
 	go connectClient()
 
 	// udp transparent transmission
@@ -58,14 +58,17 @@ func main() {
 			log.Printf("Failed to read data:%v\n", err)
 			continue
 		}
-		if nil == client {
+		if 0 >= len(clients) {
 			continue
 		}
-		num, err = outConn.WriteToUDP(data[:num], client)
-		if nil != err {
-			log.Printf("Failed to send data to %s:%v", client.String(), err)
-		} else if false {
-			log.Printf("Transport %d bytes from %s to %s\n", num, readAddr.String(), client.String())
+
+		for _, client := range clients {
+			num, err = outConn.WriteToUDP(data[:num], client)
+			if nil != err {
+				log.Printf("Failed to send data to %s:%v", client.String(), err)
+			} else if false {
+				log.Printf("Transport %d bytes from %s to %s\n", num, readAddr.String(), client.String())
+			}
 		}
 	}
 }
@@ -73,12 +76,14 @@ func main() {
 func connectClient() {
 	for {
 		data := make([]byte, 65535)
-		_, readAddr, err := outConn.ReadFromUDP(data)
+		_, clientAddr, err := outConn.ReadFromUDP(data)
 		if nil != err {
 			log.Printf("Failed to connect client:%v\n", err)
-		} else if nil == client || client.String() != readAddr.String() {
-			fmt.Printf("New client connected:%v\n", readAddr)
-			client = readAddr
+			continue
+		}
+
+		if _, added := clients[clientAddr.String()]; !added {
+			clients[clientAddr.String()] = clientAddr
 		}
 	}
 }
