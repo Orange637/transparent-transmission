@@ -14,7 +14,7 @@ var client *net.UDPAddr
 
 func main() {
 	inAddress := *flag.String("i", ":5555", "usage:「-i=:5555」to specify in ip and port")
-	outAddress := *flag.String("o", ":5556", "usage:「-o=:5556」to specify out ip and port")
+	outAddress := *flag.String("o", ":5557", "usage:「-o=:5557」to specify out ip and port")
 	flag.Parse()
 
 	// parse server address
