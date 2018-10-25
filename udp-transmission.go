@@ -48,7 +48,7 @@ func main() {
 	defer outConn.Close()
 
 	clients = make(map[string]*net.UDPAddr)
-	go connectClient()
+	go connectClients()
 
 	// udp transparent transmission
 	for {
@@ -62,18 +62,11 @@ func main() {
 			continue
 		}
 
-		for _, client := range clients {
-			num, err = outConn.WriteToUDP(data[:num], client)
-			if nil != err {
-				log.Printf("Failed to send data to %s:%v", client.String(), err)
-			} else if false {
-				log.Printf("Transport %d bytes from %s to %s\n", num, readAddr.String(), client.String())
-			}
-		}
+		go transportClients(data[:num], readAddr)
 	}
 }
 
-func connectClient() {
+func connectClients() {
 	for {
 		data := make([]byte, 65535)
 		_, clientAddr, err := outConn.ReadFromUDP(data)
@@ -84,6 +77,18 @@ func connectClient() {
 
 		if _, added := clients[clientAddr.String()]; !added {
 			clients[clientAddr.String()] = clientAddr
+			log.Printf("New client added:%s", clientAddr.String())
+		}
+	}
+}
+
+func transportClients(data []byte, deviceAddr *net.UDPAddr) {
+	for _, client := range clients {
+		num, err := outConn.WriteToUDP(data, client)
+		if nil != err {
+			log.Printf("Failed to send data to %s:%v", client.String(), err)
+		} else if false {
+			log.Printf("Transport %d bytes from %s to %s\n", num, deviceAddr.String(), client.String())
 		}
 	}
 }
