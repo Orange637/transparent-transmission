@@ -59,11 +59,11 @@ func handle(sourceAddr *net.UDPAddr, data []byte) {
 
 func transport(targetAddr *net.UDPAddr, data []byte, sourceAddress string) {
 	targetAddress := targetAddr.String()
-	num, err := server.WriteToUDP(data, targetAddr)
+	_, err := server.WriteToUDP(data, targetAddr)
 	if nil != err {
 		log.Printf("Failed to send data to %s:%v", targetAddress, err)
 		delete(clients, targetAddress)
 	} else {
-		log.Printf("Transport %d bytes from %s to %s\n", num, sourceAddress, targetAddress)
+		// log.Printf("Transport %d bytes from %s to %s\n", num, sourceAddress, targetAddress)
 	}
 }
