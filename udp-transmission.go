@@ -62,7 +62,7 @@ func main() {
 			continue
 		}
 
-		go transportClients(data[:num], readAddr)
+		transportClients(data[:num], readAddr)
 	}
 }
 
