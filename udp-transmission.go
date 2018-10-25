@@ -39,7 +39,7 @@ func main() {
 			log.Printf("Failed to read data:%v\n", err)
 			continue
 		}
-		go handle(readAddr, data[:num])
+		handle(readAddr, data[:num])
 	}
 }
 
