@@ -61,7 +61,7 @@ func main() {
 		if nil == client {
 			continue
 		}
-		num, err = inConn.WriteToUDP(data[:num], client)
+		num, err = outConn.WriteToUDP(data[:num], client)
 		if nil != err {
 			log.Printf("Failed to send data to %s:%v", client.String(), err)
 		} else if true {
