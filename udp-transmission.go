@@ -76,7 +76,7 @@ func connectClient() {
 		_, readAddr, err := outConn.ReadFromUDP(data)
 		if nil != err {
 			log.Printf("Failed to connect client:%v\n", err)
-		} else if client != readAddr {
+		} else if nil == client || client.String() != readAddr.String() {
 			fmt.Printf("New client connected:%v\n", readAddr)
 			client = readAddr
 		}
