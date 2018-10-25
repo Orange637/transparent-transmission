@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 )
@@ -9,7 +10,7 @@ import (
 var inConn *net.UDPConn
 var outConn *net.UDPConn
 var device *net.UDPAddr
-var clients map[string]*net.UDPAddr
+var client *net.UDPAddr
 
 func main() {
 	inAddress := *flag.String("i", ":5555", "usage:「-i=:5555」to specify in ip and port")
@@ -47,8 +48,7 @@ func main() {
 	defer inConn.Close()
 	defer outConn.Close()
 
-	clients = make(map[string]*net.UDPAddr)
-	go connectClients()
+	go connectToClient()
 
 	// udp transparent transmission
 	for {
@@ -58,37 +58,34 @@ func main() {
 			log.Printf("Failed to read data:%v\n", err)
 			continue
 		}
-		if 0 >= len(clients) {
+		if nil == client {
 			continue
 		}
-
-		transportClients(data[:num], readAddr)
+		transportToClient(data[:num], readAddr)
 	}
 }
 
-func connectClients() {
+func connectToClient() {
 	for {
 		data := make([]byte, 65535)
-		_, clientAddr, err := outConn.ReadFromUDP(data)
+		_, readAddr, err := outConn.ReadFromUDP(data)
 		if nil != err {
 			log.Printf("Failed to connect client:%v\n", err)
-			continue
-		}
-
-		if _, added := clients[clientAddr.String()]; !added {
-			clients[clientAddr.String()] = clientAddr
-			log.Printf("New client added:%s", clientAddr.String())
+		} else if nil == client || client.String() != readAddr.String() {
+			fmt.Printf("New client connected:%v\n", readAddr)
+			client = readAddr
 		}
 	}
 }
 
-func transportClients(data []byte, deviceAddr *net.UDPAddr) {
-	for _, client := range clients {
-		num, err := outConn.WriteToUDP(data, client)
-		if nil != err {
-			log.Printf("Failed to send data to %s:%v", client.String(), err)
-		} else if false {
-			log.Printf("Transport %d bytes from %s to %s\n", num, deviceAddr.String(), client.String())
-		}
+func transportToClient(data []byte, deviceAddr *net.UDPAddr) {
+	if nil == client {
+		return
+	}
+	num, err := outConn.WriteToUDP(data, client)
+	if nil != err {
+		log.Printf("Failed to send data to %s:%v", client.String(), err)
+	} else if false {
+		log.Printf("Transport %d bytes from %s to %s\n", num, deviceAddr.String(), client.String())
 	}
 }
